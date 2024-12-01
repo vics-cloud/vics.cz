@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Optimized Light/Dark Mode with Smooth Scroll</title>
+    
+    <!-- Locomotive Scroll Library -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/locomotive-scroll@4.1.1/dist/locomotive-scroll.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/locomotive-scroll@4.1.1/dist/locomotive-scroll.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: "class" };
+    </script>
+
+    <style>
+        /* Header styles with glass blur effect */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+            z-index: 50;
+            transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+        }
+
+        /* Light mode background and blur effect with reduced opacity */
+        .header.light {
+            background-color: rgba(255, 255, 255, 0.15); /* Zjemněná průhlednost */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px;
+        }
+
+        /* Dark mode background and blur effect with reduced opacity */
+        .header.dark {
+            background-color: rgba(31, 41, 55, 0.15); /* Zjemněná průhlednost */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: rgba(0, 0, 0, 0.2) 0px 4px 6px;
+        }
+
+        .header .logo {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: inherit; /* Barva bude deduktována z aktuálního režimu */
+        }
+
+        .header .logo a {
+            color: inherit; /* Stejná barva jako pro logo */
+        }
+
+        /* Menu styles */
+        .nav-links a {
+            color: inherit; /* Barva textu bude odpovídat režimu */
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #0070f3;
+        }
+
+        /* Mobile menu styles */
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+
+        .overlay {
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Icon color based on theme */
+        .logo img, #themeIcon {
+            transition: fill 0.3s ease;
+            fill: currentColor;
+        }
+
+        /* Circle styles */
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #circle-1 {
+            width: 150px;
+            height: 150px;
+            top: 20%;
+            left: 10%;
+            background: linear-gradient(45deg, #6366F1, #8B5CF6);
+        }
+
+        #circle-2 {
+            width: 180px;
+            height: 180px;
+            top: 40%;
+            right: 5%;
+            background: linear-gradient(45deg, #9333EA, #F472B6);
+        }
+
+        #circle-3 {
+            width: 220px;
+            height: 220px;
+            bottom: 10%;
+            left: 30%;
+            background: linear-gradient(45deg, #F472B6, #6366F1);
+        }
+
+        /* Smooth scroll styles */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Scroll animations */
+        .fade-in {
+            opacity: 0;
+            transition: opacity 0.6s ease-out;
+        }
+
+        .fade-in[data-scroll] {
+            opacity: 1;
+        }
+
+        .scroll-animate {
+            transition: transform 0.3s ease-in-out;
+            transform: translateY(50px);
+        }
+
+        .scroll-animate[data-scroll] {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body class="font-sans bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <!-- Header with glass effect and larger shadow -->
+    <header id="header" class="header">
+        <div class="logo"><a href="#about">LOGO</a></div>
+        <button id="hamburger" aria-label="Toggle Menu" aria-expanded="false" class="md:hidden flex flex-col space-y-1">
+            <span class="line line-1 w-6 h-1 bg-black dark:bg-white"></span>
+            <span class="line line-2 w-6 h-1 bg-black dark:bg-white"></span>
+            <span class="line line-3 w-6 h-1 bg-black dark:bg-white"></span>
+        </button>
+        <nav class="hidden md:flex space-x-6 items-center nav-links">
+            <a href="#design">Design</a>
+            <a href="#portfolio">Portfolio</a>
+            <a href="#services">Služby</a>
+            <a href="#contact">Kontakt</a>
+            <button id="themeToggle" class="ml-4 flex items-center p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                <img id="themeIcon" class="w-6 h-6 mr-2" src="img/svg/light-bulb.svg" alt="Light bulb icon" />
+                režim
+            </button>
+        </nav>
+    </header>
+
+    <!-- Overlay for mobile menu -->
+    <div id="overlay" class="overlay fixed inset-0 bg-black bg-opacity-50 z-40 opacity-0 pointer-events-none"></div>
+
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="mobile-menu fixed top-0 left-0 w-3/4 max-w-sm h-full bg-white dark:bg-gray-800 shadow-lg z-50">
+        <button id="closeMenu" aria-label="Close Menu" class="absolute top-4 right-4 text-2xl text-black dark:text-white">
+            &times;
+        </button>
+        <nav class="mt-16 flex flex-col space-y-4 p-6">
+            <a href="#design" class="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">Design</a>
+            <a href="#portfolio" class="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">Portfolio</a>
+            <a href="#services" class="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">Služby</a>
+            <a href="#contact" class="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">Kontakt</a>
+            <button id="themeToggleMobile" class="flex items-center mt-2 p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                <img id="themeIcon" class="w-6 h-6 mr-2" src="img/svg/light-bulb.svg" alt="Light bulb icon" />
+                režim
+            </button>
+        </nav>
+    </div>
+
+    <!-- Main Content Sections (populated with external files) -->
+    <main class="pt-16" id="mainContent">
+        <div id="about"></div>
+        <div id="design" class="scroll-animate" data-scroll></div>
+        <div id="portfolio" class="scroll-animate" data-scroll></div>
+        <div id="services" class="scroll-animate" data-scroll></div>
+        <div id="contact" class="scroll-animate" data-scroll></div>
+    </main>
+
+    <!-- JS Code for menu toggle, theme switch, smooth scroll -->
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            const savedTheme = localStorage.getItem("theme");
+            const html = document.documentElement;
+
+            if (savedTheme) {
+                html.classList.toggle("dark", savedTheme === "dark");
+            } else {
+                // Default theme can be light or dark depending on your preference
+                html.classList.add("light"); // or html.classList.add("dark");
+            }
+
+            // Initialize header theme class
+            const header = document.getElementById('header');
+            if (html.classList.contains("dark")) {
+                header.classList.add("dark");
+                header.classList.remove("light");
+            } else {
+                header.classList.add("light");
+                header.classList.remove("dark");
+            }
+
+            // Handle theme toggle
+            const themeToggle = document.getElementById("themeToggle");
+            const themeToggleMobile = document.getElementById("themeToggleMobile");
+
+            const toggleTheme = () => {
+                const isDarkMode = html.classList.toggle("dark");
+                localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+                header.classList.toggle("dark", isDarkMode);
+                header.classList.toggle("light", !isDarkMode);
+            };
+
+            themeToggle.addEventListener("click", toggleTheme);
+            themeToggleMobile.addEventListener("click", toggleTheme);
+        });
+
+        const hamburger = document.getElementById("hamburger");
+        const mobileMenu = document.getElementById("mobileMenu");
+        const overlay = document.getElementById("overlay");
+        const closeMenu = document.getElementById("closeMenu");
+
+        const toggleMenu = () => {
+            mobileMenu.classList.toggle("open");
+            overlay.classList.toggle("open");
+            hamburger.setAttribute("aria-expanded", mobileMenu.classList.contains("open"));
+        };
+
+        hamburger.addEventListener("click", toggleMenu);
+        overlay.addEventListener("click", toggleMenu);
+        closeMenu.addEventListener("click", toggleMenu);
+        document.querySelectorAll("#mobileMenu a").forEach((link) => link.addEventListener("click", toggleMenu));
+
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+            anchor.addEventListener("click", (e) => {
+                e.preventDefault();
+                const headerHeight = document.querySelector("header").offsetHeight;
+                const targetId = anchor.getAttribute("href").substring(1);
+                window.scrollTo({
+                    top: document.getElementById(targetId).offsetTop - headerHeight,
+                    behavior: "smooth",
+                });
+            });
+        });
+
+        const loadSection = async (sectionId, fileName) => {
+            try {
+                const response = await fetch(fileName);
+                document.getElementById(sectionId).innerHTML = await response.text();
+            } catch (error) {
+                console.error('Failed to load section:', error);
+            }
+        };
+
+        window.addEventListener("DOMContentLoaded", () => {
+            loadSection("about", "about.html");
+            loadSection("design", "design.html");
+            loadSection("portfolio", "portfolio.html");
+            loadSection("services", "services.html");
+            loadSection("contact", "contact.html");
+        });
+
+        // Initialize Locomotive Scroll
+        const scroll = new LocomotiveScroll({
+            el: document.querySelector('main'),
+            smooth: true
+        });
+    </script>
+</body>
+
+</html>
